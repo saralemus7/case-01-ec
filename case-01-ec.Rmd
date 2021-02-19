@@ -1,0 +1,69 @@
+---
+title: "ec"
+author: "Sara Lemus"
+date: "2/11/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(kableExtra)
+```
+
+```{r}
+data <- read_csv("dig.csv")
+```
+
+```{r}
+#female
+data %>% 
+  filter(TRTMT == 1) %>% 
+  count(SEX) %>% 
+  mutate(prop_female = round(n/sum(n) * 100,1)) %>% 
+  filter(SEX == 2) %>% 
+  select(prop_female)
+
+#nonwhite
+data %>% 
+  filter(TRTMT == 1) %>% 
+  count(RACE) %>% 
+  mutate(prop_nonwhite = round(n/sum(n) * 100,1)) %>% 
+  filter(RACE == 2) %>% 
+  select(prop_nonwhite)
+
+#age > 70
+data %>% 
+  filter(TRTMT == 1) %>%
+  count(AGE > 70) %>% 
+  mutate(prop_70plus = round(n/sum(n) * 100,1))%>% 
+  filter(TRUE) %>% 
+  filter(`AGE > 70` == "TRUE") %>% 
+  select(prop_70plus)
+
+#ejf meth
+data %>% 
+  filter(TRTMT == 1) %>%
+  mutate(EJFMETH = case_when(EJFMETH == 1 ~ "Radionuclide",
+                             EJFMETH == 2 ~ "Angiography",
+                             EJFMETH == 3 ~ "2-D Echo")) %>% 
+  count(EJFMETH) %>% 
+  mutate(prop_ejfmeth = round(n/sum(n) * 100,1)) 
+
+#cardiothotacic ration >0.55
+data %>% 
+  filter(TRTMT == 1) %>%
+  count(CHESTX > 0.55) %>% 
+  mutate(prop_chest = round(n/sum(n) * 100,1)) %>% 
+  filter(`CHESTX > 0.55` == "TRUE") %>% 
+  select(prop_chest)
+
+```
+
+
+
+
+
