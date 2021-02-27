@@ -1,27 +1,71 @@
 ---
-title: "ec"
+title: "Extra Credit Assignment Case 01"
 author: "Sara Lemus"
-date: "2/11/2021"
+date: "2/25/2021"
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
 
 ```{r}
 library(tidyverse)
-library(kableExtra)
+library(survival)
+library(survminer)
+library(DescTools)
+library(broom)
 ```
 
 ```{r}
 data <- read_csv("dig.csv")
 ```
 
+## Table 1
+
+```{r}
+#renaming levels for display purposes
+data <- data %>% 
+  mutate(TRTMT = case_when(TRTMT == 0 ~ "Placebo",
+                                TRTMT == 1 ~ "Digoxin"))
+data <- data %>% 
+  mutate(TRTMT = as.factor(TRTMT))
+```
+
+Age- Mean and SD
+```{r}
+# mean and sd age
+data %>% 
+  group_by(TRTMT) %>% 
+  summarise(mean_age = round(mean(AGE),1)) 
+data %>% 
+  group_by(TRTMT) %>% 
+  summarise(sd_age = round(sd(AGE),1))
+```
+
+Ejection fraction- mean and SD
+```{r}
+# ejection fraction
+data %>% 
+  group_by(TRTMT) %>% 
+  summarise(mean_age = round(mean(EJF_PER),1)) 
+data %>% 
+  group_by(TRTMT) %>% 
+  summarise(sd_age = round(sd(EJF_PER),1))
+```
+Median duration of CHF- Mo
+```{r}
+data %>% 
+  group_by(TRTMT) %>% 
+  filter(!is.na(CHFDUR)) %>% 
+  summarise(median = median(CHFDUR))
+```
+
+Female, Nonwhite, Age > 70
 ```{r}
 #female
 data %>% 
-  filter(TRTMT == 1) %>% 
+  group_by(TRTMT) %>% 
   count(SEX) %>% 
   mutate(prop_female = round(n/sum(n) * 100,1)) %>% 
   filter(SEX == 2) %>% 
@@ -29,7 +73,7 @@ data %>%
 
 #nonwhite
 data %>% 
-  filter(TRTMT == 1) %>% 
+  group_by(TRTMT) %>% 
   count(RACE) %>% 
   mutate(prop_nonwhite = round(n/sum(n) * 100,1)) %>% 
   filter(RACE == 2) %>% 
@@ -37,31 +81,544 @@ data %>%
 
 #age > 70
 data %>% 
-  filter(TRTMT == 1) %>%
+  group_by(TRTMT) %>%
   count(AGE > 70) %>% 
   mutate(prop_70plus = round(n/sum(n) * 100,1))%>% 
   filter(TRUE) %>% 
   filter(`AGE > 70` == "TRUE") %>% 
   select(prop_70plus)
+```
 
+Method of assesing ejection fraction, Cardiothotacic ratio
+```{r}
 #ejf meth
 data %>% 
-  filter(TRTMT == 1) %>%
+  group_by(TRTMT) %>%
   mutate(EJFMETH = case_when(EJFMETH == 1 ~ "Radionuclide",
                              EJFMETH == 2 ~ "Angiography",
                              EJFMETH == 3 ~ "2-D Echo")) %>% 
   count(EJFMETH) %>% 
   mutate(prop_ejfmeth = round(n/sum(n) * 100,1)) 
 
-#cardiothotacic ration >0.55
+#cardiothotacic ratio >0.55
 data %>% 
-  filter(TRTMT == 1) %>%
+  group_by(TRTMT) %>%
   count(CHESTX > 0.55) %>% 
   mutate(prop_chest = round(n/sum(n) * 100,1)) %>% 
   filter(`CHESTX > 0.55` == "TRUE") %>% 
   select(prop_chest)
-
 ```
+NYHA class, No. of Signs or symptoms of CHF
+```{r}
+#CHF
+data %>% 
+  group_by(TRTMT) %>%
+  filter(!is.na(FUNCTCLS)) %>% 
+  mutate(FUNCTCLS = case_when(FUNCTCLS == 1 ~ "I",
+                             FUNCTCLS == 2 ~ "II",
+                             FUNCTCLS == 3 ~ "III",
+                             FUNCTCLS == 4 ~ "IV")) %>% 
+  count(FUNCTCLS) %>% 
+  mutate(prop_nyha = round(n/sum(n) * 100,1)) 
+#no of symptoms of CHF
+data %>% 
+  group_by(TRTMT) %>%
+  count(NSYM) %>% 
+  mutate(prop_chp = round(n/sum(n) * 100,1)) %>% 
+  select(NSYM, prop_chp)
+```
+
+Medical History
+```{r}
+#medical history 
+data %>% 
+  group_by(TRTMT) %>%
+  count(PREVMI) %>% 
+  mutate(prop_prevmi = round(n/sum(n) * 100,1)) %>% 
+  filter(PREVMI == 1) %>% 
+  select(prop_prevmi)
+data %>% 
+  group_by(TRTMT) %>%
+  count(ANGINA) %>% 
+  mutate(prop_angina = round(n/sum(n) * 100,1)) %>% 
+  filter(ANGINA == 1) %>% 
+  select(prop_angina)
+data %>% 
+  group_by(TRTMT) %>%
+  count(DIABETES) %>% 
+  mutate(prop_dia = round(n/sum(n) * 100,1)) %>% 
+  filter(DIABETES == 1) %>% 
+  select(prop_dia)
+data %>% 
+  group_by(TRTMT) %>%
+  count(HYPERTEN) %>% 
+  mutate(prop_hyper = round(n/sum(n) * 100,1)) %>% 
+  filter(HYPERTEN == 1) %>% 
+  select(prop_hyper)
+```
+
+Previous digoxin use
+```{r}
+#prev digoxin
+data %>% 
+  group_by(TRTMT) %>% 
+  count(DIGUSE) %>% 
+  mutate(prop_dig = round(n/sum(n) * 100,1)) %>% 
+  filter(DIGUSE == 1) %>% 
+  select(prop_dig)
+```
+Primary cause of CHF
+```{r}
+data %>% 
+  #filter(CHFETIOL != 6) %>%
+  mutate(CHFETIOL = case_when(CHFETIOL == 1 ~ "Ischemic", 
+                              is.na(CHFETIOL) ~ "null",
+                              TRUE ~ "Nonischemic")) %>% 
+  group_by(TRTMT) %>% 
+  count(CHFETIOL) %>% 
+  mutate(prop_chfcause = round(n/sum(n) * 100, 1)) %>% 
+  filter(CHFETIOL != "null") 
+```
+```{r}
+data %>% 
+  mutate(CHFETIOL = case_when(CHFETIOL == 1 ~ "Ischemic",
+                              CHFETIOL == 4 ~ "Idiopathic", 
+                              CHFETIOL == 2 ~ "Hypertensive",
+                              CHFETIOL == 3 | CHFETIOL == 5 | CHFETIOL == 6 ~ "Other")) %>% 
+  group_by(TRTMT) %>% 
+  count(CHFETIOL) %>% 
+  mutate(prop_chfcause = round(n/sum(n) * 100,1)) %>% 
+  filter(!is.na(CHFETIOL) & CHFETIOL != "Ischemic") 
+```
+
+Concomitant medications
+```{r}
+#concomitant meds
+data <- data %>% 
+  mutate(diuretic_used = case_when(DIURET == 1 ~ 1,
+                                   DIURETK == 1 ~ 1,
+                                   TRUE ~ 0))
+data %>% 
+  group_by(TRTMT) %>% 
+  count(diuretic_used) %>% 
+  mutate(prop_diuretics = round(n/sum(n) * 100,1)) %>% 
+  filter(diuretic_used == 1) %>% 
+  select(prop_diuretics)
+data %>% 
+  group_by(TRTMT) %>% 
+  count(ACEINHIB) %>% 
+  mutate(prop_acei = round(n/sum(n) * 100,1)) %>% 
+  filter(ACEINHIB == 1) %>% 
+  select(prop_acei)
+#off by .1
+data %>% 
+  group_by(TRTMT) %>% 
+  count(NITRATES) %>% 
+  mutate(prop_nitr = round(round(n/sum(n) * 100,2),1)) %>% 
+  filter(NITRATES == 1) %>% 
+  select(prop_nitr)
+data %>% 
+  group_by(TRTMT) %>% 
+  count(VASOD) %>% 
+  mutate(prop_vasod = round(n/sum(n) * 100,1)) %>% 
+  filter(VASOD == 1) %>% 
+  select(prop_vasod)
+```
+
+Daily dose of study medication perscribed
+```{r}
+#daily dose
+data %>% 
+  group_by(TRTMT) %>% 
+  count(DIGDOSE) %>% 
+  mutate(prop_dose = round(n/sum(n) * 100,1)) %>% 
+  select(DIGDOSE, prop_dose) %>% 
+  filter(DIGDOSE == 0.125 | DIGDOSE == 0.250 | DIGDOSE == 0.375 | DIGDOSE == 0.500)
+```
+
+
+## Table 4
+```{r}
+#relevel
+data <- data %>% 
+  mutate(TRTMT_RE = fct_relevel(TRTMT, "Placebo")) 
+```
+
+### Ejection Fraction
+```{r}
+data <- data %>% 
+  mutate(EJF_PER_NEW = case_when(EJF_PER >= 25  ~ "0.25-0.45",
+                                  TRUE ~ "<0.25"))
+```
+
+```{r}
+#ejection fraction
+table_1_ejf <- data %>% 
+  group_by(TRTMT) %>% 
+  filter(DWHF == 1) %>% 
+  count(EJF_PER_NEW) 
+table_2_ejf <- data %>% 
+  group_by(TRTMT) %>% 
+  count(EJF_PER_NEW) 
+table_1_ejf <- table_1_ejf %>% 
+  rename("yes_dwhf" = n)
+table_2_ejf <- table_2_ejf %>% 
+  rename("randomized" = n)
+result_table_ejf <- inner_join(table_1_ejf, table_2_ejf) 
+```
+
+```{r}
+result_table_ejf <- result_table_ejf %>% 
+  mutate(percent = yes_dwhf / randomized) 
+result_table_ejf %>% 
+  mutate(percent = round(yes_dwhf / randomized, 3)* 100)
+```
+
+Absolute difference
+```{r}
+#https://stackoverflow.com/questions/7381455/filtering-a-data-frame-by-values-in-a-column
+yes_result_1_ejf <- result_table_ejf$yes_dwhf[result_table_ejf$EJF_PER_NEW == "0.25-0.45"]
+no_result_1_ejf <- result_table_ejf$randomized[result_table_ejf$EJF_PER_NEW == "0.25-0.45"]
+
+#https://rdrr.io/cran/DescTools/man/BinomDiffCI.html
+round(BinomDiffCI(yes_result_1_ejf[1], no_result_1_ejf[1], yes_result_1_ejf[2], no_result_1_ejf[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+```{r}
+yes_result_0_ejf <- result_table_ejf$yes_dwhf[result_table_ejf$EJF_PER_NEW == "<0.25"]
+no_result_0_ejf <- result_table_ejf$randomized[result_table_ejf$EJF_PER_NEW == "<0.25"]
+
+round(BinomDiffCI(yes_result_0_ejf[1], no_result_0_ejf[1], yes_result_0_ejf[2], no_result_0_ejf[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+Risk Ratio 
+```{r}
+#ejf fraction
+data1 <- data %>% 
+  filter(EJF_PER_NEW == "0.25-0.45")
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data1))$conf.int, 2)
+
+data2 <- data %>% 
+  filter(EJF_PER_NEW == "<0.25")
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data2))$conf.int, 2)
+```
+
+### Previous Use of Digoxin
+
+```{r}
+#prev dig use
+table_1 <- data %>% 
+  group_by(TRTMT) %>% 
+  filter(DWHF == 1) %>% 
+  count(DIGUSE) 
+table_2 <- data %>% 
+  group_by(TRTMT) %>% 
+  count(DIGUSE) 
+table_1 <- table_1 %>% 
+  rename("yes_dwhf" = n)
+table_2 <- table_2 %>% 
+  rename("randomized" = n)
+result_table <- inner_join(table_1, table_2) 
+```
+
+```{r}
+result_table <- result_table %>% 
+  mutate(percent =round(yes_dwhf / randomized, 3)* 100) 
+result_table 
+```
+
+Absolute difference
+```{r}
+#https://stackoverflow.com/questions/7381455/filtering-a-data-frame-by-values-in-a-column
+yes_result_1 <- result_table$yes_dwhf[result_table$DIGUSE == 1]
+no_result_1 <- result_table$randomized[result_table$DIGUSE == 1]
+
+#https://rdrr.io/cran/DescTools/man/BinomDiffCI.html
+round(BinomDiffCI(yes_result_1[1], no_result_1[1], yes_result_1[2], no_result_1[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+```{r}
+yes_result_0 <- result_table$yes_dwhf[result_table$DIGUSE == 0]
+no_result_0 <- result_table$randomized[result_table$DIGUSE == 0]
+
+round(BinomDiffCI(yes_result_0[1], no_result_0[1], yes_result_0[2], no_result_0[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+Risk Ratio
+```{r}
+#prev dig use
+data4 <- data %>% 
+  filter(DIGUSE == 1)
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data4))$conf.int, 2)
+
+data3 <- data %>% 
+  filter(DIGUSE == 0)
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data3))$conf.int, 2)
+```
+
+### Cause of Heart Failure
+
+```{r}
+data <- data %>% 
+  mutate(CHFETIOL_NEW = case_when(CHFETIOL == 1 ~ "Ischemic", 
+                              is.na(CHFETIOL) ~ "null",
+                              TRUE ~ "Nonischemic"))
+```
+
+```{r}
+#hart failure
+table_1_cause <- data %>% 
+  group_by(TRTMT) %>% 
+  filter(DWHF == 1) %>% 
+  count(CHFETIOL_NEW) %>% 
+  filter(CHFETIOL_NEW != "null") 
+table_2_cause <- data %>% 
+  group_by(TRTMT) %>% 
+  count(CHFETIOL_NEW) %>% 
+  filter(CHFETIOL_NEW != "null") 
+table_1_cause <- table_1_cause %>% 
+  rename("yes_dwhf" = n)
+table_2_cause <- table_2_cause %>% 
+  rename("randomized" = n)
+result_table_cause <- inner_join(table_1_cause, table_2_cause) 
+```
+
+```{r}
+result_table_cause <- result_table_cause %>% 
+  mutate(percent = yes_dwhf / randomized) 
+result_table_cause %>% 
+  mutate(percent = round(yes_dwhf / randomized, 3)* 100)
+```
+
+Absolute difference
+```{r}
+#https://stackoverflow.com/questions/7381455/filtering-a-data-frame-by-values-in-a-column
+yes_result_1_cause <- result_table_cause$yes_dwhf[result_table_cause$CHFETIOL_NEW == "Ischemic"]
+no_result_1_cause <- result_table_cause$randomized[result_table_cause$CHFETIOL_NEW == "Ischemic"]
+
+#https://rdrr.io/cran/DescTools/man/BinomDiffCI.html
+round(BinomDiffCI(yes_result_1_cause[1], no_result_1_cause[1], yes_result_1_cause[2], no_result_1_cause[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+```{r}
+yes_result_0_cause <- result_table_cause$yes_dwhf[result_table_cause$CHFETIOL_NEW == "Nonischemic"]
+no_result_0_cause <- result_table_cause$randomized[result_table_cause$CHFETIOL_NEW == "Nonischemic"]
+
+round(BinomDiffCI(yes_result_0_cause[1], no_result_0_cause[1], yes_result_0_cause[2], no_result_0_cause[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+Risk Ratio 
+```{r}
+#cause of heart failure
+data5 <- data %>% 
+  filter(CHFETIOL_NEW == "Ischemic")
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data5))$conf.int, 2)
+
+data6 <- data %>% 
+  filter(CHFETIOL_NEW == "Nonischemic")
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data6))$conf.int, 2)
+```
+
+
+
+### Cardiothoracic Ratio
+
+```{r}
+data <- data %>% 
+  mutate(CHESTX_NEW = case_when(CHESTX > 0.55 ~ ">0.55", 
+                                TRUE ~ "<0.55"))
+```
+
+```{r}
+table_1_chest <- data %>% 
+  group_by(TRTMT) %>% 
+  filter(DWHF == 1) %>% 
+  count(CHESTX_NEW)
+table_2_chest <- data %>% 
+  group_by(TRTMT) %>% 
+  count(CHESTX_NEW)
+table_1_chest <- table_1_chest %>% 
+  rename("yes_dwhf" = n)
+table_2_chest <- table_2_chest %>% 
+  rename("randomized" = n)
+result_table_chest <- inner_join(table_1_chest, table_2_chest) 
+```
+
+```{r}
+result_table_chest <- result_table_chest %>% 
+  mutate(percent = yes_dwhf / randomized) 
+result_table_chest %>% 
+  mutate(percent = round(yes_dwhf / randomized, 3)* 100)
+```
+
+Absolute difference
+```{r}
+#https://stackoverflow.com/questions/7381455/filtering-a-data-frame-by-values-in-a-column
+yes_result_1_chest <- result_table_chest$yes_dwhf[result_table_chest$CHESTX_NEW == "<0.55"]
+no_result_1_chest <- result_table_chest$randomized[result_table_chest$CHESTX_NEW == "<0.55"]
+
+#https://rdrr.io/cran/DescTools/man/BinomDiffCI.html
+round(BinomDiffCI(yes_result_1_chest[1], no_result_1_chest[1], yes_result_1_chest[2], no_result_1_chest[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+
+```{r}
+yes_result_0_chest <- result_table_chest$yes_dwhf[result_table_chest$CHESTX_NEW == ">0.55"]
+no_result_0_chest <- result_table_chest$randomized[result_table_chest$CHESTX_NEW == ">0.55"]
+
+round(BinomDiffCI(yes_result_0_chest[1], no_result_0_chest[1], yes_result_0_chest[2], no_result_0_chest[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+Risk Ratio 
+```{r}
+#cardiothoracic ratio
+data7 <- data %>% 
+  filter(CHESTX_NEW == "<0.55")
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data7))$conf.int, 2)
+
+data8 <- data %>% 
+  filter(CHESTX_NEW == ">0.55")
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data8))$conf.int, 2)
+```
+
+### NYHA Class
+
+```{r}
+data <- data %>% 
+  mutate(NYHA_NEW = case_when(FUNCTCLS == 1 | FUNCTCLS == 2 ~ "I or II", 
+                              TRUE ~ "III or IV"))
+```
+
+```{r}
+#NYHA class
+table_1_nyha <- data %>% 
+  group_by(TRTMT) %>% 
+  filter(DWHF == 1) %>% 
+  count(NYHA_NEW)
+table_2_nyha <- data %>% 
+  group_by(TRTMT) %>% 
+  count(NYHA_NEW)
+table_1_nyha <- table_1_nyha %>% 
+  rename("yes_dwhf" = n)
+table_2_nyha <- table_2_nyha %>% 
+  rename("randomized" = n)
+result_table_nyha <- inner_join(table_1_nyha, table_2_nyha) 
+```
+
+```{r}
+result_table_nyha <- result_table_nyha %>% 
+  mutate(percent = yes_dwhf / randomized) 
+result_table_nyha %>% 
+  mutate(percent = round(yes_dwhf / randomized, 3)* 100)
+```
+
+Absolute difference
+```{r}
+#https://stackoverflow.com/questions/7381455/filtering-a-data-frame-by-values-in-a-column
+yes_result_1_nyha <- result_table_nyha$yes_dwhf[result_table_nyha$NYHA_NEW == "I or II"]
+no_result_1_nyha <- result_table_nyha$randomized[result_table_nyha$NYHA_NEW == "I or II"]
+
+#https://rdrr.io/cran/DescTools/man/BinomDiffCI.html
+round(BinomDiffCI(yes_result_1_nyha[1], no_result_1_nyha[1], yes_result_1_nyha[2], no_result_1_nyha[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+```{r}
+#issue
+yes_result_0_nyha <- result_table_nyha$yes_dwhf[result_table_nyha$NYHA_NEW== "III or IV"]
+no_result_0_nyha <- result_table_nyha$randomized[result_table_nyha$NYHA_NEW== "III or IV"]
+
+round(BinomDiffCI(yes_result_0_nyha[1], no_result_0_nyha[1], yes_result_0_nyha[2], no_result_0_nyha[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+Risk Ratio 
+```{r}
+#nyha class
+data9 <- data %>% 
+  filter(NYHA_NEW == "I or II")
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data9))$conf.int, 2)
+
+#lower .95 off by 0.1
+data10 <- data %>% 
+  filter(NYHA_NEW == "III or IV")
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data10))$conf.int, 2)
+```
+
+### Overall study population
+
+```{r}
+data %>% 
+  group_by(TRTMT) %>%
+  count(DWHF) %>% 
+  mutate(prop_dwhf = round(n/sum(n) * 100,1)) %>% 
+  filter(DWHF == 1) %>% 
+  select(prop_dwhf)
+```
+
+```{r}
+result_table_trtmt <- data %>% 
+  group_by(TRTMT) %>%
+  count(DWHF) %>% 
+  mutate(prop_dwhf = n/sum(n) * 100)
+#result_table_trtmt %>% 
+  #mutate(prop_dwhf = round(prop_dwhf, 1))
+```
+
+```{r}
+table_1_trtmt <- data %>% 
+  group_by(TRTMT) %>% 
+  filter(DWHF == 1) %>% 
+  count(DWHF)
+table_2_trtmt <- data %>% 
+  count(TRTMT) 
+table_1_trtmt <- table_1_trtmt %>% 
+  rename("yes_dwhf" = n)
+table_2_trtmt <- table_2_trtmt %>% 
+  rename("randomized" = n)
+result_table_trtmt <- inner_join(table_1_trtmt, table_2_trtmt) 
+```
+
+Absolute Difference
+```{r}
+round(BinomDiffCI(result_table_trtmt$yes_dwhf[1], result_table_trtmt$randomized[1],result_table_trtmt$yes_dwhf[2], result_table_trtmt$randomized[2],
+        conf.level = .95,
+        method = "wald"), 3) * 100
+```
+
+Risk Ratio
+```{r}
+#study pop
+round(summary(coxph(Surv(DWHFDAYS, DWHF) ~ TRTMT_RE, data))$conf.int, 2)
+```
+
+
+
+## Remarks
+In general, I was able to replicate the findings of this study. However, there were some small discrepancies. In Table 1, 9 table values were off by about 0.1. This is assumed to be due to discrepancies in rounding, as the values in the original table were rounded up to the nearest 0.1, though the actual proportion estimates were most likely calculated with more signficant digits. In Table 4, the largest discrepancy was that for the "III or IV" category of NYHA class, the proportion for the placebo group differentiated by 0.1 and the estimate for the absolute difference of the two proportions differentiated by 0.2. The accompanying 95% confidence interval is also different by a similar margin. Once again, due to the fact that the magnitude of the error is small and that the other level of the variable (class I or II) mirrors the original table, it is also thought that this discrepancy may be also due to rounding, despite the fact that calculations were made follwing the paper (ie: absolute differences were calculated before rounding).
+
+
+
+
+
 
 
 
